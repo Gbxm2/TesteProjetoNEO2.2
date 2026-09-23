@@ -84,7 +84,18 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // Permite acesso de qualquer dispositivo na rede local (CORS)
+  // ------------------------------------------------------------
+  // CIBERSEGURANÇA: CABEÇALHOS DE PROTEÇÃO HTTP (OWASP)
+  // ------------------------------------------------------------
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    next();
+  });
+
+  // Permite acesso seguro e controlado
   app.use((_req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -94,6 +105,25 @@ async function startServer() {
     }
     next();
   });
+
+  // Mitigação simples de Força Bruta / DoS por IP
+  const requestRates = new Map<string, { count: number; resetAt: number }>();
+  const rateLimit = (maxRequests: number, windowMs: number) => {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const ip = req.ip || "127.0.0.1";
+      const now = Date.now();
+      const current = requestRates.get(ip);
+      if (!current || now > current.resetAt) {
+        requestRates.set(ip, { count: 1, resetAt: now + windowMs });
+        return next();
+      }
+      if (current.count >= maxRequests) {
+        return res.status(429).json({ sucesso: false, mensagem: "Taxa limite excedida. Aguarde alguns instantes." });
+      }
+      current.count++;
+      next();
+    };
+  };
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer });
 
@@ -123,7 +153,7 @@ async function startServer() {
     }
   ];
 
-  app.post("/api/login", (req, res) => {
+  app.post("/api/login", rateLimit(15, 60000), (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username && u.password === password);
     if (user) {
@@ -344,8 +374,10 @@ async function startServer() {
     pollingEsp32Ip = targetIp.trim();
     if (!pollingEsp32Ip) return;
 
-    const authHeader = "Basic " + Buffer.from("Gbxm:Gbxm#1853").toString("base64");
-    console.log(`[ESP32 Polling] Iniciando busca peri├│dica em http://${pollingEsp32Ip}/dados...`);
+    const authUser = process.env.ESP32_AUTH_USER || "Gbxm";
+    const authPass = process.env.ESP32_AUTH_PASS || "Gbxm#1853";
+    const authHeader = "Basic " + Buffer.from(`${authUser}:${authPass}`).toString("base64");
+    console.log(`[ESP32 Polling] Iniciando busca periódica segura em http://${pollingEsp32Ip}/dados...`);
 
     pollingInterval = setInterval(async () => {
       try {

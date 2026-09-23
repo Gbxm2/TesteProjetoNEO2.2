@@ -14,11 +14,13 @@ import {
   UserX,
   Mail,
   Phone,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from "lucide-react";
 import { UserRecord, UserRole } from "../types";
 import { dataService } from "../services/dataService";
 import { formatCPF, formatPhone } from "../utils/formatters";
+import { maskCPF } from "../utils/security";
 import { motion, AnimatePresence } from "motion/react";
 
 interface UserModalProps {
@@ -48,6 +50,13 @@ export default function UserManagementModal({
   useEffect(() => {
     if (isOpen) {
       loadUsers();
+      // Sincronização em tempo real: reflete alterações na raiz do Supabase
+      const unsubscribe = dataService.subscribeToRealtime((table) => {
+        if (table === "users") {
+          loadUsers();
+        }
+      });
+      return () => unsubscribe();
     }
   }, [isOpen]);
 
@@ -61,8 +70,21 @@ export default function UserManagementModal({
       alert("Você não pode desativar o seu próprio usuário logado.");
       return;
     }
-    await dataService.toggleUserStatus(username);
+    await dataService.toggleUserStatus(username, currentUsername);
     await loadUsers();
+  };
+
+  const handleDeleteUser = async (userToDelete: string) => {
+    if (userToDelete === currentUsername) {
+      alert("Você não pode excluir o seu próprio usuário logado.");
+      return;
+    }
+    if (window.confirm(`Confirma a exclusão definitiva do usuário @${userToDelete}? Esta ação é irreversível e será auditada.`)) {
+      await dataService.deleteUser(userToDelete, currentUsername);
+      setSuccessMsg(`Usuário @${userToDelete} excluído com sucesso.`);
+      setTimeout(() => setSuccessMsg(""), 3000);
+      await loadUsers();
+    }
   };
 
   const handleSaveUser = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -77,8 +99,8 @@ export default function UserManagementModal({
       return;
     }
 
-    await dataService.saveUser(editingUser);
-    setSuccessMsg("Usuário salvo com sucesso!");
+    await dataService.saveUser(editingUser, currentUsername);
+    setSuccessMsg("Usuário salvo com sucesso e credenciais protegidas!");
     setTimeout(() => setSuccessMsg(""), 3000);
     setIsFormOpen(false);
     setEditingUser(null);
@@ -258,6 +280,9 @@ export default function UserManagementModal({
                             )}
                           </div>
                           <div className="text-[10px] text-zinc-400 font-mono">@{u.username}</div>
+                          <div className="text-[9px] text-zinc-500 font-mono mt-0.5">
+                            CPF: {maskCPF(u.cpf, isMaster)}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -299,16 +324,29 @@ export default function UserManagementModal({
                     </td>
 
                     <td className="py-4 px-3 text-right">
-                      <button
-                        onClick={() => {
-                          setEditingUser({ ...u });
-                          setIsFormOpen(true);
-                        }}
-                        className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors"
-                        title="Editar Credenciais e Dados"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setEditingUser({ ...u });
+                            setIsFormOpen(true);
+                          }}
+                          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors"
+                          title="Editar Credenciais e Dados"
+                          aria-label={`Editar usuário ${u.username}`}
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        {!isCurrent && (
+                          <button
+                            onClick={() => handleDeleteUser(u.username)}
+                            className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors border border-red-500/20"
+                            title="Excluir Usuário"
+                            aria-label={`Excluir usuário ${u.username}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

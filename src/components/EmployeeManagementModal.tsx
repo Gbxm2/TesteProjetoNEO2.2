@@ -18,6 +18,7 @@ import {
 import { Employee, Helmet, UserRole } from "../types";
 import { dataService } from "../services/dataService";
 import { formatCPF, formatPhone } from "../utils/formatters";
+import { maskCPF } from "../utils/security";
 import { motion, AnimatePresence } from "motion/react";
 
 interface EmployeeModalProps {
@@ -46,6 +47,13 @@ export default function EmployeeManagementModal({
   useEffect(() => {
     if (isOpen) {
       loadData();
+      // Sincronização em tempo real: reflete atualizações feitas na raiz do Supabase
+      const unsubscribe = dataService.subscribeToRealtime((table) => {
+        if (table === "employees" || table === "helmets") {
+          loadData();
+        }
+      });
+      return () => unsubscribe();
     }
   }, [isOpen]);
 
@@ -230,7 +238,9 @@ export default function EmployeeManagementModal({
                           </div>
                           <div>
                             <div className="font-bold text-white">{emp.name}</div>
-                            <div className="text-[10px] text-zinc-400 font-mono">{emp.cpf || "CPF não informado"}</div>
+                            <div className="text-[10px] text-zinc-400 font-mono">
+                              CPF: {maskCPF(emp.cpf, !isReadOnly)}
+                            </div>
                           </div>
                         </div>
                       </td>

@@ -199,5 +199,53 @@ VALUES
 ('ACC-001', EXTRACT(EPOCH FROM NOW() - INTERVAL '2 hours') * 1000, 'EMP001', 'Gabriel Araújo', 12.4, 14.8, 85, -23.5505, -46.6333, true, true, false)
 ON CONFLICT (id) DO NOTHING;
 
+-- 8. TABELA DE AUDITORIA DE CIBERSEGURANÇA E CONFORMIDADE (LGPD)
+CREATE TABLE IF NOT EXISTS security_audit_logs (
+    id TEXT PRIMARY KEY DEFAULT ('AUD-' || substr(md5(random()::text), 1, 10)),
+    timestamp BIGINT NOT NULL,
+    action TEXT NOT NULL,
+    actor_username TEXT NOT NULL,
+    target TEXT,
+    details TEXT,
+    ip TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE security_audit_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access to security_audit_logs" ON security_audit_logs FOR ALL USING (true) WITH CHECK (true);
+
+-- ============================================================
+-- HABILITAR SUPABASE REALTIME (COMUNICAÇÃO BIDIRECIONAL)
+-- ============================================================
+-- Permite que qualquer alteração manual ou via SQL na raiz do Supabase
+-- seja imediatamente propagada para a aplicação Safety Monitor via WebSocket Realtime!
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+END $$;
+
+-- Adiciona tabelas à publicação de Realtime
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE users, employees, helmets, accident_events, safety_guidelines;
+  EXCEPTION
+    WHEN duplicate_object THEN
+      -- Tabelas já presentes na publicação
+      NULL;
+  END;
+END $$;
+
+-- REPLICA IDENTITY FULL garante que eventos de UPDATE e DELETE transmitam todos os campos antigos e novos
+ALTER TABLE users REPLICA IDENTITY FULL;
+ALTER TABLE employees REPLICA IDENTITY FULL;
+ALTER TABLE helmets REPLICA IDENTITY FULL;
+ALTER TABLE accident_events REPLICA IDENTITY FULL;
+ALTER TABLE safety_guidelines REPLICA IDENTITY FULL;
+
 -- Mensagem de confirmação
-SELECT 'Schema do Industrial Safety Monitor e dados de teste criados com sucesso!' AS status;
+SELECT 'Schema do Industrial Safety Monitor com Realtime Bidirecional e Cibersegurança configurados com sucesso!' AS status;
+

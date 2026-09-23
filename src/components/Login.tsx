@@ -25,7 +25,11 @@ export default function Login({ onLogin, onGoToRegister, error }: LoginProps) {
   };
 
   return (
-    <div className="relative h-screen w-screen flex items-center justify-center overflow-hidden">
+    <div 
+      role="main"
+      aria-label="Tela de Autenticação Industrial"
+      className="relative min-h-screen w-full flex items-center justify-center p-4 py-8 overflow-y-auto bg-zinc-950"
+    >
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-referrer"

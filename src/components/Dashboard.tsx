@@ -22,7 +22,11 @@ import {
   Crown,
   Building2,
   Eye,
-  Database
+  Database,
+  Menu,
+  X as MenuCloseIcon,
+  Cookie,
+  ShieldCheck
 } from "lucide-react";
 import { Employee, SystemStats, RecentActivity, UserProfile, UserRole } from "../types";
 import { isSupabaseConfigured } from "../services/supabaseClient";
@@ -43,6 +47,7 @@ interface DashboardProps {
   onOpenEmployeeModal: () => void;
   onOpenUserModal: () => void;
   onOpenAnalyticsModal: () => void;
+  onOpenPrivacyPolicy?: () => void;
 }
 
 export default function Dashboard({ 
@@ -58,10 +63,12 @@ export default function Dashboard({
   onOpenHelmetModal,
   onOpenEmployeeModal,
   onOpenUserModal,
-  onOpenAnalyticsModal
+  onOpenAnalyticsModal,
+  onOpenPrivacyPolicy
 }: DashboardProps) {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Capacete conectado principal (EMP001 vinculado ao ESP32)
   const connectedHelmet = employees.find(e => e.id === "EMP001" && e.status !== "OFFLINE") || employees.find(e => e.status !== "OFFLINE") || null;
@@ -137,11 +144,12 @@ export default function Dashboard({
           </span>
         </div>
 
-        {/* Central Navigation Action Shortcuts */}
-        <nav className="hidden md:flex items-center gap-1.5">
+        {/* Central Navigation Action Shortcuts - Desktop */}
+        <nav aria-label="Navegação Principal" className="hidden md:flex items-center gap-1.5">
           <button
             onClick={onOpenHelmetModal}
             className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/5 hover:border-yellow-500/30 text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+            aria-label="Abrir gestão de capacetes"
           >
             <HardHat className="w-3.5 h-3.5 text-yellow-500" />
             <span>Capacetes</span>
@@ -150,6 +158,7 @@ export default function Dashboard({
           <button
             onClick={onOpenEmployeeModal}
             className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/5 hover:border-yellow-500/30 text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+            aria-label="Abrir gestão de funcionários"
           >
             <Users className="w-3.5 h-3.5 text-yellow-500" />
             <span>Funcionários</span>
@@ -159,6 +168,7 @@ export default function Dashboard({
             <button
               onClick={onOpenUserModal}
               className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/5 hover:border-yellow-500/30 text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+              aria-label="Abrir controle de usuários RBAC"
             >
               <Shield className="w-3.5 h-3.5 text-yellow-500" />
               <span>Usuários RBAC</span>
@@ -168,6 +178,7 @@ export default function Dashboard({
           <button
             onClick={onOpenAnalyticsModal}
             className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/5 hover:border-yellow-500/30 text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+            aria-label="Abrir normas regulamentadoras e laudos"
           >
             <FileCheck2 className="w-3.5 h-3.5 text-yellow-500" />
             <span>Normas & Laudos</span>
@@ -176,31 +187,55 @@ export default function Dashboard({
           <button
             onClick={onNavigateToMap}
             className="px-3.5 py-1.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
+            aria-label="Navegar para o mapa de operações ao vivo"
           >
             <MapIcon className="w-3.5 h-3.5" />
             <span>Mapa ao Vivo</span>
           </button>
         </nav>
         
-        <div className="flex items-center gap-5">
-          <div className="relative cursor-pointer" onClick={onOpenAnalyticsModal} title="Visualizar Alertas e Normas">
+        <div className="flex items-center gap-3 md:gap-5">
+          {/* Botão de Menu Mobile */}
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="flex md:hidden p-2 rounded-xl bg-zinc-900 border border-white/10 text-zinc-300 hover:text-white"
+            aria-label="Abrir menu de navegação móvel"
+            aria-expanded={showMobileMenu}
+          >
+            {showMobileMenu ? <MenuCloseIcon className="w-5 h-5 text-yellow-500" /> : <Menu className="w-5 h-5" />}
+          </button>
+
+          <div 
+            className="relative cursor-pointer p-1" 
+            onClick={onOpenAnalyticsModal} 
+            title="Visualizar Alertas e Normas"
+            aria-label="Alertas e emergências do dia"
+            role="button"
+            tabIndex={0}
+          >
             <Bell className="w-5 h-5 text-zinc-400 hover:text-white transition-colors" />
             {stats.emergenciesToday > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-[10px] flex items-center justify-center rounded-full font-bold animate-pulse">
+              <span 
+                role="alert"
+                aria-live="assertive"
+                className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-[10px] flex items-center justify-center rounded-full font-bold animate-pulse"
+              >
                 {stats.emergenciesToday}
               </span>
             )}
           </div>
           
           <div className="relative">
-            <div 
+            <button 
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-2 cursor-pointer group"
+              aria-label="Menu do usuário"
+              aria-expanded={showDropdown}
             >
               <div className="w-8 h-8 rounded-full border-2 border-yellow-500/50 flex items-center justify-center bg-zinc-900 text-yellow-500 font-bold text-sm group-hover:border-yellow-500 transition-all">
                 {(currentUser.firstName || username).charAt(0).toUpperCase()}
               </div>
-            </div>
+            </button>
 
             <AnimatePresence>
               {showDropdown && (
@@ -656,13 +691,101 @@ export default function Dashboard({
           </section>
         </div>
 
-        {/* Footer */}
-        <footer className="p-8 text-center border-t border-white/5 mt-auto">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-widest">
-            © 2026 Industrial Safety Monitor • Monitoramento de Segurança e Telemetria em Tempo Real
-          </p>
+        {/* Footer com Políticas LGPD, Cookies e Acessibilidade */}
+        <footer className="p-8 border-t border-white/5 mt-auto bg-zinc-950/60">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+            <div>
+              <p className="text-xs font-semibold text-zinc-300">
+                Industrial Safety Monitor • Sistema de Monitoramento IoT com ESP32
+              </p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                Em conformidade com NR-06 (EPI), NR-12 (Segurança em Máquinas) e LGPD (Lei nº 13.709/2018)
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-zinc-400">
+              {onOpenPrivacyPolicy && (
+                <button
+                  onClick={onOpenPrivacyPolicy}
+                  className="hover:text-yellow-400 underline underline-offset-4 transition-colors flex items-center gap-1"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-yellow-500" />
+                  <span>Política de Privacidade (LGPD)</span>
+                </button>
+              )}
+              <button
+                onClick={onOpenAnalyticsModal}
+                className="hover:text-yellow-400 underline underline-offset-4 transition-colors flex items-center gap-1"
+              >
+                <FileCheck2 className="w-3.5 h-3.5 text-green-400" />
+                <span>Normas NR-06 & NR-12</span>
+              </button>
+            </div>
+          </div>
         </footer>
       </main>
+
+      {/* Menu Mobile Drawer */}
+      <AnimatePresence>
+        {showMobileMenu && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black/70 z-40 md:hidden backdrop-blur-sm"
+              onClick={() => setShowMobileMenu(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-16 left-0 right-0 z-50 bg-zinc-900 border-b border-white/10 p-4 space-y-2 shadow-2xl md:hidden"
+            >
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 mb-1">Menu Rápido Mobile</p>
+              
+              <button
+                onClick={() => { setShowMobileMenu(false); onOpenHelmetModal(); }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-950 border border-white/5 text-xs text-white font-semibold"
+              >
+                <HardHat className="w-4 h-4 text-yellow-500" />
+                <span>Capacetes Inteligentes</span>
+              </button>
+
+              <button
+                onClick={() => { setShowMobileMenu(false); onOpenEmployeeModal(); }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-950 border border-white/5 text-xs text-white font-semibold"
+              >
+                <Users className="w-4 h-4 text-yellow-500" />
+                <span>Operadores de Campo</span>
+              </button>
+
+              {effectiveRole !== "VIEWER" && (
+                <button
+                  onClick={() => { setShowMobileMenu(false); onOpenUserModal(); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-950 border border-white/5 text-xs text-white font-semibold"
+                >
+                  <Shield className="w-4 h-4 text-yellow-500" />
+                  <span>Controle de Usuários RBAC</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => { setShowMobileMenu(false); onOpenAnalyticsModal(); }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-950 border border-white/5 text-xs text-white font-semibold"
+              >
+                <FileCheck2 className="w-4 h-4 text-yellow-500" />
+                <span>Normas NR-06 & NR-12</span>
+              </button>
+
+              <button
+                onClick={() => { setShowMobileMenu(false); onNavigateToMap(); }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-yellow-500 text-black text-xs font-bold uppercase tracking-wider"
+              >
+                <MapIcon className="w-4 h-4" />
+                <span>Ver Mapa ao Vivo</span>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Modal de Perfil do Usuário */}
       <ProfileModal

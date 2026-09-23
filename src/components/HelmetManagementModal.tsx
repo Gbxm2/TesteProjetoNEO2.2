@@ -47,6 +47,13 @@ export default function HelmetManagementModal({
   useEffect(() => {
     if (isOpen) {
       loadHelmets();
+      // Sincronização em tempo real com o Supabase
+      const unsubscribe = dataService.subscribeToRealtime((table) => {
+        if (table === "helmets" || table === "employees") {
+          loadHelmets();
+        }
+      });
+      return () => unsubscribe();
     }
   }, [isOpen]);
 

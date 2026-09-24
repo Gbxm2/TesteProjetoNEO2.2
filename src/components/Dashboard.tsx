@@ -71,7 +71,11 @@ export default function Dashboard({
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Capacete conectado principal (EMP001 vinculado ao ESP32)
-  const connectedHelmet = employees.find(e => e.id === "EMP001" && e.status !== "OFFLINE") || employees.find(e => e.status !== "OFFLINE") || null;
+  const connectedHelmet = employees.find(e => e.id === "EMP001" && e.telemetry) 
+    || employees.find(e => e.id === "EMP001") 
+    || employees.find(e => e.status !== "OFFLINE") 
+    || employees[0] 
+    || null;
   const telemetry = connectedHelmet?.telemetry;
 
   const isSupabase = isSupabaseConfigured();
@@ -503,7 +507,15 @@ export default function Dashboard({
                   {telemetry?.aceleracaoG !== undefined ? telemetry.aceleracaoG.toFixed(2) : "1.00"} <span className="text-sm font-bold text-yellow-500 font-sans">G</span>
                 </div>
                 <p className="text-[11px] text-zinc-500 mt-2">
-                  Pico Máximo Registrado: <strong className="text-zinc-300">{telemetry?.picoG !== undefined ? telemetry.picoG.toFixed(2) : "1.01"} G</strong>
+                  Pico Máximo Registrado: <strong className="text-zinc-300">
+                    {telemetry?.picoAceleracaoG !== undefined && telemetry.picoAceleracaoG > 0
+                      ? telemetry.picoAceleracaoG.toFixed(2)
+                      : (telemetry?.picoG !== undefined && telemetry.picoG > 0
+                          ? telemetry.picoG.toFixed(2)
+                          : (telemetry?.aceleracaoG !== undefined && telemetry.aceleracaoG > 0 
+                              ? telemetry.aceleracaoG.toFixed(2) 
+                              : "1.00"))} G
+                  </strong>
                 </p>
               </div>
 

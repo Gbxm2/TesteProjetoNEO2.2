@@ -282,7 +282,7 @@ async function startServer() {
       const telemetryData: EmployeeTelemetry = {
         aceleracao: parseFloat(dados.aceleracao) || 0,
         aceleracaoG: parseFloat(dados.aceleracaoG) || 0,
-        picoAceleracaoG: parseFloat(dados.picoAceleracaoG) || 0,
+        picoAceleracaoG: parseFloat(dados.picoAceleracaoG) || parseFloat(dados.picoG) || 0,
         picoG: parseFloat(dados.picoG) || 0,
         pontuacao: Number(dados.pontuacao) || 0,
         pontosMPU: Number(dados.pontosMPU) || 0,
@@ -341,10 +341,14 @@ async function startServer() {
     if (!latestESP32Data) {
       return res.status(404).json({
         sucesso: false,
-        mensagem: "Ainda n├úo existem dados do ESP32."
+        mensagem: "Ainda não existem dados do ESP32."
       });
     }
     res.json(latestESP32Data);
+  });
+
+  app.get("/api/employees", (_req, res) => {
+    res.json(employees);
   });
 
   app.get("/api/status", (_req, res) => {
